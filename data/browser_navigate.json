@@ -1,0 +1,6 @@
+{
+  "name": "browser_navigate",
+  "arguments": {
+    "url": "https://www.saucedemo.com/"
+  }
+}

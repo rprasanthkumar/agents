@@ -1,0 +1,55 @@
+{
+  "name": "example_page",
+  "url": "https://www.saucedemo.com/?utm_source=chatgpt.com",
+  "title": "Swag Labs",
+  "page_objects": [
+    {
+      "type": "input",
+      "text": "",
+      "id": "user-name",
+      "name": "user-name",
+      "class": "form-control form-input error",
+      "placeholder": "Username",
+      "aria_label": "Username",
+      "href": "",
+      "css_selector": "#user-name",
+      "xpath": "//input[@id='user-name']"
+    },
+    {
+      "type": "input",
+      "text": "",
+      "id": "password",
+      "name": "password",
+      "class": "form-control form-input error",
+      "placeholder": "Password",
+      "aria_label": "Password",
+      "href": "",
+      "css_selector": "#password",
+      "xpath": "//input[@id='password']"
+    },
+    {
+      "type": "button",
+      "text": "Login",
+      "id": "login-button",
+      "name": "login-button",
+      "class": "btn btn_action btn_primary submit login_button radius",
+      "placeholder": "",
+      "aria_label": "",
+      "href": "",
+      "css_selector": "#login-button",
+      "xpath": "//button[@id='login-button']"
+    },
+    {
+      "type": "link",
+      "text": "Forgot your password?",
+      "id": "",
+      "name": "",
+      "class": "reset-password-btn",
+      "placeholder": "",
+      "aria_label": "",
+      "href": "/forgot_password.php?error=2",
+      "css_selector": ".reset-password-btn",
+      "xpath": "//a[@class='reset-password-btn']"
+    }
+  ]
+}
