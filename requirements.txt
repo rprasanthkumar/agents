@@ -1,0 +1,3 @@
+langchain-mcp-adapters
+langchain-ollama
+langchain
