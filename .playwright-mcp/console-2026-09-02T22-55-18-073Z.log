@@ -1,0 +1,1 @@
+[     713ms] [ERROR] WebSocket connection to 'wss://demo.owasp-juice.shop/socket.io/?EIO=4&transport=websocket&sid=0UoNE_1M5C0SgbSBAAHs' failed: Error during WebSocket handshake: Unexpected response code: 400 @ https://demo.owasp-juice.shop/main.js:3286

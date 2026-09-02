@@ -1,883 +1,1251 @@
 import asyncio
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import streamlit as st
+
+from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
 
-MODEL_NAME = "qwen3:8b"
+SNAPSHOT_DIR = DATA_DIR / "snapshots"
+JSON_DIR = DATA_DIR / "pages"
+LOG_DIR = DATA_DIR / "logs"
 
-SAUCEDEMO_URL = "https://www.saucedemo.com/"
-USERNAME = "standard_user"
-PASSWORD = "secret_sauce"
+OLLAMA_MODEL = "qwen3:8b"
 
-OUTPUT_DIR = Path("data")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_URL = "https://www.saucedemo.com/"
 
-OUTPUT_FILE = OUTPUT_DIR / "saucedemo.json"
-
-MAX_AGENT_STEPS = 30
-
-
-# ============================================================
-# PLAYWRIGHT MCP CLIENT
-# ============================================================
-
-client = MultiServerMCPClient(
-    {
-        "playwright": {
-            "transport": "stdio",
-            "command": "npx",
-            "args": [
-                "@playwright/mcp@latest",
-                "--isolated",
-            ],
-        }
+# Playwright MCP is started with an isolated browser profile.
+# A persistent MCP session is used so browser state is preserved
+# across navigation, login, clicks, snapshots, and extraction.
+MCP_CONFIG = {
+    "playwright": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+            "@playwright/mcp@0.0.80",
+            "--isolated",
+        ],
     }
+}
+
+
+st.set_page_config(
+    page_title="Browser Automation Agent",
+    layout="wide",
 )
 
 
-# ============================================================
-# LLM
-# ============================================================
+def create_directories():
+    """Create directories used for generated files."""
 
-model = ChatOllama(
-    model=MODEL_NAME,
-    temperature=0,
-)
+    SNAPSHOT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    JSON_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    LOG_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
 
-# ============================================================
-# DOM EXTRACTION JAVASCRIPT
-# ============================================================
+def get_tool(tools, name: str):
+    """Return an MCP tool by name."""
+
+    for tool in tools:
+        if tool.name == name:
+            return tool
+
+    available_tools = [
+        tool.name
+        for tool in tools
+    ]
+
+    raise RuntimeError(
+        f"Tool '{name}' was not found. "
+        f"Available tools: {available_tools}"
+    )
+
+
+def extract_text(result: Any) -> str:
+    """
+    Extract text from an MCP/LangChain result.
+
+    MCP responses can be represented as strings, dictionaries,
+    lists of content blocks, or objects containing text/content.
+    """
+
+    if result is None:
+        return ""
+
+    if isinstance(result, str):
+        return result
+
+    if isinstance(result, dict):
+        if isinstance(
+            result.get("text"),
+            str,
+        ):
+            return result["text"]
+
+        if "content" in result:
+            return extract_text(
+                result["content"]
+            )
+
+        if "result" in result:
+            return extract_text(
+                result["result"]
+            )
+
+        if "value" in result:
+            return extract_text(
+                result["value"]
+            )
+
+        return json.dumps(
+            result,
+            ensure_ascii=False,
+        )
+
+    if isinstance(result, list):
+        parts = []
+
+        for item in result:
+            if isinstance(item, str):
+                parts.append(item)
+
+            elif isinstance(item, dict):
+                if isinstance(
+                    item.get("text"),
+                    str,
+                ):
+                    parts.append(
+                        item["text"]
+                    )
+
+                elif "content" in item:
+                    parts.append(
+                        extract_text(
+                            item["content"]
+                        )
+                    )
+
+                else:
+                    parts.append(
+                        json.dumps(
+                            item,
+                            ensure_ascii=False,
+                        )
+                    )
+
+            elif hasattr(item, "text"):
+                parts.append(
+                    str(item.text)
+                )
+
+            elif hasattr(item, "content"):
+                parts.append(
+                    extract_text(
+                        item.content
+                    )
+                )
+
+            else:
+                parts.append(
+                    str(item)
+                )
+
+        return "\n".join(parts)
+
+    if hasattr(result, "text"):
+        return str(result.text)
+
+    if hasattr(result, "content"):
+        return extract_text(
+            result.content
+        )
+
+    return str(result)
+
+
+def parse_json_result(result: Any):
+    """
+    Parse JSON returned by browser_evaluate.
+
+    The JSON may be returned directly or wrapped inside
+    an MCP text/content response.
+    """
+
+    if isinstance(result, dict):
+
+        if "result" in result:
+            value = result["result"]
+
+            if isinstance(
+                value,
+                (dict, list),
+            ):
+                return value
+
+        if "value" in result:
+            value = result["value"]
+
+            if isinstance(
+                value,
+                (dict, list),
+            ):
+                return value
+
+    text = extract_text(
+        result
+    ).strip()
+
+    if not text:
+        raise ValueError(
+            "browser_evaluate returned an empty result."
+        )
+
+    try:
+        return json.loads(text)
+
+    except json.JSONDecodeError:
+        pass
+
+    # Some MCP responses may contain additional text around
+    # the JSON value. Try to locate the first valid JSON object
+    # or array in the returned text.
+    decoder = json.JSONDecoder()
+
+    for index, character in enumerate(text):
+
+        if character not in "[{":
+            continue
+
+        try:
+            value, _ = decoder.raw_decode(
+                text[index:]
+            )
+
+            return value
+
+        except json.JSONDecodeError:
+            continue
+
+    raise ValueError(
+        "Could not parse JSON from browser_evaluate:\n"
+        + text[:3000]
+    )
+
+
+def extract_snapshot_text(result: Any) -> str:
+    """
+    Extract the raw browser_snapshot text.
+
+    The snapshot is deliberately not parsed or reconstructed.
+    This preserves the format produced by Playwright MCP.
+    """
+
+    text = extract_text(
+        result
+    ).strip()
+
+    if not text:
+        raise ValueError(
+            "browser_snapshot returned an empty snapshot."
+        )
+
+    return text
+
+
+def safe_filename(value: str) -> str:
+    """Convert a URL into a safe filename."""
+
+    value = value.strip()
+
+    value = re.sub(
+        r"https?://",
+        "",
+        value,
+    )
+
+    value = re.sub(
+        r"[^a-zA-Z0-9_-]+",
+        "_",
+        value,
+    )
+
+    value = value.strip("_")
+
+    if not value:
+        value = "page"
+
+    return value[:100]
+
 
 DOM_EXTRACTION_JS = r"""
 () => {
-    function clean(value) {
-        if (value === null || value === undefined) {
-            return null;
+    const elements = Array.from(
+        document.querySelectorAll(
+            "button, a, input, form, textarea, select, [role]"
+        )
+    );
+
+    function isVisible(element) {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+
+        if (style.display === "none") {
+            return false;
         }
 
-        const result = String(value).trim();
-        return result === "" ? null : result;
+        if (style.visibility === "hidden") {
+            return false;
+        }
+
+        if (style.opacity === "0") {
+            return false;
+        }
+
+        if (element.hidden) {
+            return false;
+        }
+
+        if (
+            element.getAttribute("aria-hidden") === "true"
+        ) {
+            return false;
+        }
+
+        return (
+            rect.width > 0 &&
+            rect.height > 0
+        );
+    }
+
+    function cleanText(element) {
+        return (
+            element.innerText ||
+            element.textContent ||
+            ""
+        )
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function getAriaLabel(element) {
+        const directLabel =
+            element.getAttribute("aria-label");
+
+        if (directLabel) {
+            return directLabel.trim();
+        }
+
+        const labelledBy =
+            element.getAttribute("aria-labelledby");
+
+        if (!labelledBy) {
+            return "";
+        }
+
+        return labelledBy
+            .split(/\s+/)
+            .map(
+                id =>
+                    document.getElementById(id)
+            )
+            .filter(Boolean)
+            .map(
+                element =>
+                    cleanText(element)
+            )
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    function getType(element) {
+        const tag =
+            element.tagName.toLowerCase();
+
+        if (tag !== "input") {
+            return tag;
+        }
+
+        const inputType = (
+            element.getAttribute("type") ||
+            "text"
+        ).toLowerCase();
+
+        if (
+            inputType === "checkbox" ||
+            inputType === "radio"
+        ) {
+            return inputType;
+        }
+
+        return "input";
     }
 
     function cssEscape(value) {
-        if (window.CSS && CSS.escape) {
-            return CSS.escape(String(value));
+        if (
+            window.CSS &&
+            typeof window.CSS.escape === "function"
+        ) {
+            return window.CSS.escape(value);
         }
 
         return String(value).replace(
-            /([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g,
+            /([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g,
             "\\$1"
         );
     }
 
-    function cssSelector(el) {
-        if (!(el instanceof Element)) {
-            return null;
-        }
-
-        if (el.id) {
-            return "#" + cssEscape(el.id);
+    function getCssSelector(element) {
+        if (element.id) {
+            return (
+                "#" +
+                cssEscape(element.id)
+            );
         }
 
         const parts = [];
-        let current = el;
+        let current = element;
 
         while (
             current &&
-            current.nodeType === Node.ELEMENT_NODE &&
-            current !== document.body &&
-            current !== document.documentElement
+            current.nodeType === Node.ELEMENT_NODE
         ) {
-            let part = current.tagName.toLowerCase();
+            let selector =
+                current.tagName.toLowerCase();
 
-            const classes = Array.from(current.classList || [])
-                .filter(Boolean)
-                .slice(0, 3);
+            if (current.id) {
+                selector +=
+                    "#" +
+                    cssEscape(current.id);
 
-            if (classes.length > 0) {
-                part += classes
-                    .map(cls => "." + cssEscape(cls))
-                    .join("");
+                parts.unshift(selector);
+                break;
             }
 
-            const parent = current.parentElement;
+            const parent =
+                current.parentElement;
 
-            if (parent) {
-                const sameTag = Array.from(parent.children)
-                    .filter(child =>
-                        child.tagName === current.tagName
-                    );
-
-                if (sameTag.length > 1) {
-                    const index = sameTag.indexOf(current) + 1;
-                    part += `:nth-of-type(${index})`;
-                }
+            if (!parent) {
+                parts.unshift(selector);
+                break;
             }
 
-            parts.unshift(part);
+            const siblings =
+                Array.from(
+                    parent.children
+                ).filter(
+                    sibling =>
+                        sibling.tagName ===
+                        current.tagName
+                );
+
+            if (siblings.length > 1) {
+                const index =
+                    siblings.indexOf(
+                        current
+                    ) + 1;
+
+                selector +=
+                    `:nth-of-type(${index})`;
+            }
+
+            parts.unshift(selector);
+
             current = parent;
         }
 
         return parts.join(" > ");
     }
 
-    function xpathSelector(el) {
-        if (!(el instanceof Element)) {
-            return null;
+    function getXPath(element) {
+        if (element.id) {
+            return (
+                '//*[@id="' +
+                element.id.replace(
+                    /"/g,
+                    '\\"'
+                ) +
+                '"]'
+            );
         }
 
         const parts = [];
-        let current = el;
+        let current = element;
 
         while (
             current &&
             current.nodeType === Node.ELEMENT_NODE
         ) {
             let index = 1;
-            let sibling = current.previousElementSibling;
+
+            let sibling =
+                current.previousElementSibling;
 
             while (sibling) {
-                if (sibling.tagName === current.tagName) {
+                if (
+                    sibling.tagName ===
+                    current.tagName
+                ) {
                     index++;
                 }
 
-                sibling = sibling.previousElementSibling;
+                sibling =
+                    sibling.previousElementSibling;
             }
 
             parts.unshift(
-                current.tagName.toLowerCase() + "[" + index + "]"
+                current.tagName.toLowerCase() +
+                `[${index}]`
             );
 
-            current = current.parentElement;
+            current =
+                current.parentElement;
         }
 
         return "/" + parts.join("/");
     }
 
-    function visible(el) {
-        if (!(el instanceof Element)) {
-            return false;
+    const result = [];
+
+    for (const element of elements) {
+
+        if (!isVisible(element)) {
+            continue;
         }
 
-        const style = window.getComputedStyle(el);
-        const rect = el.getBoundingClientRect();
+        const tag =
+            element.tagName.toLowerCase();
 
-        return (
-            style.display !== "none" &&
-            style.visibility !== "hidden" &&
-            style.opacity !== "0" &&
-            rect.width > 0 &&
-            rect.height > 0
-        );
+        result.push({
+            type:
+                getType(element),
+
+            role:
+                element.getAttribute("role") || "",
+
+            text:
+                cleanText(element),
+
+            id:
+                element.id || "",
+
+            name:
+                element.getAttribute("name") || "",
+
+            class:
+                element.getAttribute("class") || "",
+
+            placeholder:
+                element.getAttribute(
+                    "placeholder"
+                ) || "",
+
+            aria_label:
+                getAriaLabel(element),
+
+            href:
+                tag === "a"
+                    ? element.href || ""
+                    : "",
+
+            css_selector:
+                getCssSelector(element),
+
+            xpath:
+                getXPath(element),
+        });
     }
-
-    function getText(el) {
-        const ariaLabel = clean(
-            el.getAttribute("aria-label")
-        );
-
-        if (ariaLabel) {
-            return ariaLabel;
-        }
-
-        if (
-            el.tagName === "INPUT" ||
-            el.tagName === "TEXTAREA" ||
-            el.tagName === "SELECT"
-        ) {
-            const value = clean(el.value);
-
-            if (value) {
-                return value;
-            }
-        }
-
-        return clean(
-            el.innerText || el.textContent
-        );
-    }
-
-    function getType(el) {
-        const tag = el.tagName.toLowerCase();
-
-        if (tag === "input") {
-            return (
-                clean(el.getAttribute("type")) ||
-                "text"
-            );
-        }
-
-        return tag;
-    }
-
-    function extract(el) {
-        return {
-            type: getType(el),
-            text: getText(el),
-            id: clean(el.id),
-            name: clean(el.getAttribute("name")),
-            class: clean(el.getAttribute("class")),
-            placeholder: clean(
-                el.getAttribute("placeholder")
-            ),
-            aria_label: clean(
-                el.getAttribute("aria-label")
-            ),
-            href: clean(
-                el.getAttribute("href")
-            ),
-            css_selector: cssSelector(el),
-            xpath: xpathSelector(el)
-        };
-    }
-
-    const selector = [
-        "button",
-        "a",
-        "input",
-        "form",
-        "textarea",
-        "select",
-        "input[type='checkbox']",
-        "input[type='radio']"
-    ].join(",");
-
-    const elements = Array.from(
-        document.querySelectorAll(selector)
-    ).filter(visible);
 
     return {
-        url: window.location.href,
-        title: document.title,
-        element_count: elements.length,
-        elements: elements.map(extract)
+        url:
+            window.location.href,
+
+        title:
+            document.title,
+
+        element_count:
+            result.length,
+
+        elements:
+            result,
     };
 }
 """
 
 
-# ============================================================
-# SYSTEM PROMPT
-# ============================================================
+def build_system_prompt(
+    username: str,
+    password_supplied: bool,
+) -> str:
+    """
+    Build the instructions given to Qwen.
 
-SYSTEM_PROMPT = f"""
+    Qwen controls the browser through MCP.
+    Python is responsible for extracting and saving
+    the final JSON and raw Playwright snapshot.
+    """
+
+    username_instruction = ""
+
+    if username:
+        username_instruction = (
+            f"The username supplied by the user is: {username}"
+        )
+
+    password_instruction = ""
+
+    if password_supplied:
+        password_instruction = (
+            "A password was supplied through the UI. "
+            "Use it when the user explicitly asks you to log in. "
+            "Never print the password in your response."
+        )
+
+    return f"""
 You are a browser automation agent.
 
-You control a real Playwright browser.
+You have access to Playwright MCP browser tools.
 
-IMPORTANT:
+Execute the user's browser task using the available tools.
 
-Perform browser actions ONE AT A TIME.
+{username_instruction}
 
-Never issue multiple browser tool calls in a single response.
+{password_instruction}
 
-After each tool result, inspect the result before deciding
-what the next browser action should be.
+Browser automation rules:
 
-TASK:
+1. Use actual Playwright tools to perform the requested actions.
 
-1. Navigate to:
-   {SAUCEDEMO_URL}
+2. When you encounter an unfamiliar page, use browser_snapshot
+   to inspect the page before interacting with it.
 
-2. Inspect the page.
+3. Prefer accessible roles, names, labels and stable IDs.
 
-3. Locate the username input.
+4. Do not invent elements or selectors.
 
-4. Locate the password input.
+5. If the user requests login, actually perform the login.
 
-5. Enter:
+6. If the login fails, inspect the page and determine why.
 
-   username: {USERNAME}
-   password: {PASSWORD}
+7. If navigation leads to another page, inspect the new page.
 
-6. Click the Login button.
+8. Complete the requested workflow before responding.
 
-7. Wait for the login operation to complete.
+9. Do not fabricate JSON or YAML.
 
-8. Verify that login succeeded.
+10. Python will capture the real browser_snapshot and the DOM
+    after your browser workflow finishes.
 
-A successful login should show the SauceDemo inventory/products
-page containing "Products" and "Swag Labs".
+11. Never expose passwords in the final response.
 
-9. Once login is definitely successful, use browser_evaluate
-to inspect the CURRENT DOM.
-
-10. The DOM evaluation result is authoritative.
-
-11. Do not invent selectors.
-
-12. Do not return elements that are not currently visible.
-
-13. Do not inspect or report elements from a previous page.
-
-14. The final response must be JSON only.
-
-15. Do not use markdown code fences.
-
-16. The final JSON format must be:
-
-{{
-    "success": true,
-    "url": "...",
-    "title": "...",
-    "elements": [
-        {{
-            "type": "...",
-            "text": "...",
-            "id": "...",
-            "name": "...",
-            "class": "...",
-            "placeholder": "...",
-            "aria_label": "...",
-            "href": "...",
-            "css_selector": "...",
-            "xpath": "..."
-        }}
-    ]
-}}
-
-If login fails:
-
-{{
-    "success": false,
-    "error": "...",
-    "url": "...",
-    "title": "...",
-    "elements": []
-}}
-
-Never claim login succeeded unless the browser actually
-shows the logged-in inventory/products page.
+12. When the user asks for page objects, inspect the relevant
+    page and leave the browser on the final relevant page so
+    the extraction layer can capture it.
 """
 
 
-# ============================================================
-# HELPERS
-# ============================================================
-
-def clean_model_json(text: str) -> str:
+async def execute_tool(
+    tool,
+    arguments: dict,
+    activity: list,
+):
     """
-    Remove accidental markdown fences around JSON.
+    Execute an MCP tool and record its status.
     """
 
-    text = text.strip()
-
-    text = re.sub(
-        r"^```json\s*",
-        "",
-        text,
-        flags=re.IGNORECASE
+    activity.append(
+        {
+            "tool": tool.name,
+            "status": "running",
+        }
     )
-
-    text = re.sub(
-        r"^```\s*",
-        "",
-        text
-    )
-
-    text = re.sub(
-        r"\s*```$",
-        "",
-        text
-    )
-
-    return text.strip()
-
-
-def parse_final_json(text: str) -> dict[str, Any]:
-    """
-    Parse model output as JSON.
-    """
-
-    text = clean_model_json(text)
 
     try:
-        result = json.loads(text)
 
-        if not isinstance(result, dict):
-            raise ValueError(
-                "Final JSON must be an object."
-            )
+        result = await tool.ainvoke(
+            arguments
+        )
+
+        activity[-1]["status"] = "success"
 
         return result
 
-    except json.JSONDecodeError:
+    except Exception as exc:
 
-        # Attempt recovery if the model added text
-        # before/after the JSON object.
+        activity[-1]["status"] = "failed"
 
-        match = re.search(
-            r"\{.*\}",
-            text,
-            flags=re.DOTALL
+        activity[-1]["error"] = str(
+            exc
         )
 
-        if not match:
-            raise ValueError(
-                "Model did not return valid JSON."
-            )
-
-        result = json.loads(match.group(0))
-
-        if not isinstance(result, dict):
-            raise ValueError(
-                "Final JSON must be an object."
-            )
-
-        return result
+        raise
 
 
-def validate_result(data: dict[str, Any]) -> None:
-
-    if "success" not in data:
-        raise ValueError(
-            "Missing 'success' field."
-        )
-
-    if data["success"] is False:
-        return
-
-    required = [
-        "url",
-        "title",
-        "elements"
-    ]
-
-    for field in required:
-        if field not in data:
-            raise ValueError(
-                f"Missing '{field}' field."
-            )
-
-    if not isinstance(
-        data["elements"],
-        list
-    ):
-        raise ValueError(
-            "'elements' must be a list."
-        )
-
-    element_fields = [
-        "type",
-        "text",
-        "id",
-        "name",
-        "class",
-        "placeholder",
-        "aria_label",
-        "href",
-        "css_selector",
-        "xpath"
-    ]
-
-    for index, element in enumerate(
-        data["elements"]
-    ):
-
-        if not isinstance(
-            element,
-            dict
-        ):
-            raise ValueError(
-                f"Element {index} must be an object."
-            )
-
-        for field in element_fields:
-
-            if field not in element:
-                raise ValueError(
-                    f"Element {index} missing "
-                    f"'{field}'."
-                )
-
-
-def print_ai_step(
-    response: AIMessage,
-    step: int
+async def run_browser_agent(
+    instruction: str,
+    url: str,
+    username: str,
+    password: str,
 ):
+    """
+    Start a persistent Playwright MCP session,
+    let Qwen execute the browser task, then capture
+    the final page as YAML and JSON.
+    """
 
-    print("\n")
-    print("=" * 80)
-    print(f"AI STEP {step}")
-    print("=" * 80)
+    create_directories()
 
-    if response.content:
-        print("\nCONTENT:")
-        print(response.content)
+    activity = []
 
-    if response.tool_calls:
-
-        print("\nNATIVE TOOL CALLS:")
-
-        for call in response.tool_calls:
-
-            print(
-                f"  {call['name']}"
-            )
-
-            print(
-                json.dumps(
-                    call.get("args", {}),
-                    indent=2,
-                    ensure_ascii=False
-                )
-            )
-
-
-def print_tool_result(
-    result: ToolMessage,
-    step: int
-):
-
-    print("\n")
-    print("-" * 80)
-    print(
-        f"TOOL RESULT - STEP {step}"
-    )
-    print("-" * 80)
-
-    content = result.content
-
-    if isinstance(content, str):
-        print(content[:15000])
-    else:
-        print(
-            str(content)[:15000]
-        )
-
-
-# ============================================================
-# MAIN
-# ============================================================
-
-async def main():
-
-    print(
-        "Starting Playwright MCP..."
+    client = MultiServerMCPClient(
+        MCP_CONFIG
     )
 
-    print(
-        f"Model: {MODEL_NAME}"
-    )
-
-    # --------------------------------------------------------
-    # IMPORTANT:
-    #
-    # DO NOT use:
-    #
-    #     tools = await client.get_tools()
-    #
-    # because that creates a new MCP session for each
-    # tool invocation.
-    #
-    # Instead create one persistent session.
-    # --------------------------------------------------------
-
+    # Keep one MCP session alive for the complete workflow.
+    # This is important because the browser state must persist
+    # between navigation, login, clicks and extraction.
     async with client.session(
         "playwright"
     ) as session:
-
-        print(
-            "Created persistent Playwright MCP session."
-        )
 
         tools = await load_mcp_tools(
             session
         )
 
-        print(
-            f"Loaded {len(tools)} Playwright tools."
+        activity.append(
+            {
+                "tool": "MCP",
+                "status": "connected",
+                "tool_count": len(tools),
+            }
         )
 
-        tool_names = {
-            tool.name
-            for tool in tools
-        }
-
-        print(
-            "\nAvailable tools:"
+        model = ChatOllama(
+            model=OLLAMA_MODEL,
+            temperature=0,
         )
 
-        for name in sorted(tool_names):
-            print(
-                f"  - {name}"
-            )
-
-        if "browser_evaluate" not in tool_names:
-            raise RuntimeError(
-                "browser_evaluate is not available."
-            )
-
-        # ----------------------------------------------------
-        # Bind tools to Qwen.
-        # ----------------------------------------------------
-
-        model_with_tools = model.bind_tools(
-            tools
+        system_prompt = build_system_prompt(
+            username=username,
+            password_supplied=bool(password),
         )
 
-        messages = [
-            HumanMessage(
-                content=SYSTEM_PROMPT
-                + """
+        agent = create_agent(
+            model=model,
+            tools=tools,
+            system_prompt=system_prompt,
+        )
 
-Begin the browser task now.
+        user_prompt = f"""
+Execute this browser task:
 
-Remember:
-ONE browser tool call at a time.
+{instruction}
+
+Starting URL:
+
+{url}
 """
-            )
-        ]
 
-        final_content = None
+        final_state = None
 
-        # ----------------------------------------------------
-        # Agent loop
-        # ----------------------------------------------------
-
-        for step in range(
-            1,
-            MAX_AGENT_STEPS + 1
+        # Qwen decides which Playwright MCP tools are necessary.
+        async for update in agent.astream(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": user_prompt,
+                    }
+                ]
+            },
+            stream_mode="updates",
         ):
 
-            response = await (
-                model_with_tools.ainvoke(
-                    messages
-                )
-            )
+            final_state = update
 
-            print_ai_step(
-                response,
-                step
-            )
-
-            messages.append(
-                response
-            )
-
-            # ------------------------------------------------
-            # Model has no tool call.
-            # It should be producing final JSON.
-            # ------------------------------------------------
-
-            if not response.tool_calls:
-
-                final_content = (
-                    response.content
-                )
-
-                break
-
-            # ------------------------------------------------
-            # IMPORTANT:
-            #
-            # Even if Qwen returns multiple tool calls,
-            # execute ONLY THE FIRST ONE.
-            # ------------------------------------------------
-
-            call = response.tool_calls[0]
-
-            tool_name = call["name"]
-
-            tool_args = call.get(
-                "args",
-                {}
-            )
-
-            tool_call_id = call["id"]
-
-            tool = next(
-                (
-                    t
-                    for t in tools
-                    if t.name == tool_name
-                ),
-                None
-            )
-
-            if tool is None:
-
-                result = ToolMessage(
-                    content=(
-                        f"Unknown tool: "
-                        f"{tool_name}"
-                    ),
-                    tool_call_id=tool_call_id
-                )
-
-                messages.append(
-                    result
-                )
-
-                print_tool_result(
-                    result,
-                    step
-                )
-
+            if not isinstance(
+                update,
+                dict,
+            ):
                 continue
 
-            print(
-                "\nEXECUTING ONE TOOL:"
-            )
+            for node_data in update.values():
 
-            print(
-                f"  {tool_name}"
-            )
-
-            print(
-                json.dumps(
-                    tool_args,
-                    indent=2,
-                    ensure_ascii=False
-                )
-            )
-
-            # ------------------------------------------------
-            # Execute inside the SAME persistent MCP session.
-            # ------------------------------------------------
-
-            try:
-
-                tool_result = await tool.ainvoke(
-                    tool_args
-                )
-
-                if isinstance(
-                    tool_result,
-                    str
+                if not isinstance(
+                    node_data,
+                    dict,
                 ):
-                    content = tool_result
-                else:
-                    content = json.dumps(
-                        tool_result,
-                        ensure_ascii=False,
-                        default=str
+                    continue
+
+                messages = node_data.get(
+                    "messages"
+                )
+
+                if not messages:
+                    continue
+
+                for message in messages:
+
+                    message_type = getattr(
+                        message,
+                        "type",
+                        "",
                     )
 
-            except Exception as exc:
+                    if message_type != "tool":
+                        continue
 
-                content = (
-                    f"Tool execution error: "
-                    f"{type(exc).__name__}: {exc}"
-                )
+                    tool_name = getattr(
+                        message,
+                        "name",
+                        "unknown",
+                    )
 
-            result = ToolMessage(
-                content=content,
-                tool_call_id=tool_call_id
-            )
+                    activity.append(
+                        {
+                            "tool": tool_name,
+                            "status": "completed",
+                        }
+                    )
 
-            print_tool_result(
-                result,
-                step
-            )
-
-            messages.append(
-                result
-            )
-
-        # ----------------------------------------------------
-        # Agent exceeded maximum steps.
-        # ----------------------------------------------------
-
-        if final_content is None:
-
-            raise RuntimeError(
-                f"Agent exceeded "
-                f"{MAX_AGENT_STEPS} steps "
-                f"without returning JSON."
-            )
-
-        # ----------------------------------------------------
-        # Parse final JSON.
-        # ----------------------------------------------------
-
-        print("\n")
-        print("=" * 80)
-        print("RAW FINAL RESPONSE")
-        print("=" * 80)
-
-        print(
-            final_content
+        # Capture the real Playwright accessibility snapshot
+        # from the final page after the agent has completed its task.
+        browser_snapshot = get_tool(
+            tools,
+            "browser_snapshot",
         )
 
+        snapshot_result = await execute_tool(
+            browser_snapshot,
+            {},
+            activity,
+        )
+
+        snapshot_text = extract_snapshot_text(
+            snapshot_result
+        )
+
+        # Execute JavaScript in the same browser session to collect
+        # structured information about the visible interactive DOM.
+        browser_evaluate = get_tool(
+            tools,
+            "browser_evaluate",
+        )
+
+        dom_result = await execute_tool(
+            browser_evaluate,
+            {
+                "function": DOM_EXTRACTION_JS,
+            },
+            activity,
+        )
+
+        dom_data = parse_json_result(
+            dom_result
+        )
+
+        if not isinstance(
+            dom_data,
+            dict,
+        ):
+            raise ValueError(
+                "DOM extraction did not return an object."
+            )
+
+        elements = dom_data.get(
+            "elements",
+            [],
+        )
+
+        if not isinstance(
+            elements,
+            list,
+        ):
+            elements = []
+
+        dom_data["element_count"] = len(
+            elements
+        )
+
+        current_url = str(
+            dom_data.get(
+                "url",
+                url,
+            )
+        )
+
+        page_name = safe_filename(
+            current_url
+        )
+
+        timestamp = datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+
+        snapshot_path = (
+            SNAPSHOT_DIR /
+            f"{page_name}_{timestamp}.yaml"
+        )
+
+        json_path = (
+            JSON_DIR /
+            f"{page_name}_{timestamp}.json"
+        )
+
+        log_path = (
+            LOG_DIR /
+            f"playwright_{timestamp}.json"
+        )
+
+        # Save the raw snapshot exactly as Playwright MCP returned it.
+        snapshot_path.write_text(
+            snapshot_text + "\n",
+            encoding="utf-8",
+        )
+
+        # Save structured DOM information as JSON.
+        json_path.write_text(
+            json.dumps(
+                dom_data,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        # Save the Playwright execution history separately.
+        log_path.write_text(
+            json.dumps(
+                activity,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        agent_response = ""
+
+        # Find the final AI response from the streamed agent state.
         if isinstance(
-            final_content,
-            list
+            final_state,
+            dict,
         ):
 
-            final_content = "".join(
-                item.get(
-                    "text",
-                    ""
+            for node_data in final_state.values():
+
+                if not isinstance(
+                    node_data,
+                    dict,
+                ):
+                    continue
+
+                messages = node_data.get(
+                    "messages"
                 )
-                if isinstance(
-                    item,
-                    dict
-                )
-                else str(item)
-                for item in final_content
+
+                if not messages:
+                    continue
+
+                for message in reversed(
+                    messages
+                ):
+
+                    message_type = getattr(
+                        message,
+                        "type",
+                        "",
+                    )
+
+                    if message_type != "ai":
+                        continue
+
+                    content = getattr(
+                        message,
+                        "content",
+                        "",
+                    )
+
+                    if isinstance(
+                        content,
+                        str,
+                    ):
+                        agent_response = content
+
+                    elif isinstance(
+                        content,
+                        list,
+                    ):
+                        agent_response = "\n".join(
+                            str(item)
+                            for item in content
+                        )
+
+                    break
+
+        return {
+            "agent_response": agent_response,
+            "url": current_url,
+            "snapshot": snapshot_text,
+            "dom": dom_data,
+            "snapshot_path": snapshot_path,
+            "json_path": json_path,
+            "log_path": log_path,
+            "activity": activity,
+        }
+
+
+def render_activity(activity):
+    """
+    Display tool activity in Streamlit.
+
+    Icons are intentionally not used.
+    """
+
+    for item in activity:
+
+        tool_name = item.get(
+            "tool",
+            "unknown",
+        )
+
+        status = item.get(
+            "status",
+            "unknown",
+        )
+
+        st.write(
+            f"`{tool_name}` — {status}"
+        )
+
+        if item.get("error"):
+            st.error(
+                item["error"]
             )
 
-        data = parse_final_json(
-            final_content
+
+def main():
+    """Run the Streamlit interface."""
+
+    st.title(
+        "Browser Automation Agent"
+    )
+
+    st.write(
+        "Enter a browser task in natural language. "
+        "Qwen will control Playwright and the application "
+        "will save the resulting page snapshot and DOM data."
+    )
+
+    with st.sidebar:
+
+        st.header(
+            "Browser"
         )
 
-        validate_result(
-            data
+        url = st.text_input(
+            "Starting URL",
+            value=DEFAULT_URL,
         )
 
-        # ----------------------------------------------------
-        # Save.
-        # ----------------------------------------------------
+        username = st.text_input(
+            "Username",
+            value="standard_user",
+        )
 
-        with OUTPUT_FILE.open(
-            "w",
-            encoding="utf-8"
-        ) as f:
+        password = st.text_input(
+            "Password",
+            type="password",
+            value="secret_sauce",
+        )
 
-            json.dump(
-                data,
-                f,
-                indent=2,
-                ensure_ascii=False
+        st.divider()
+
+        st.write(
+            f"Model: `{OLLAMA_MODEL}`"
+        )
+
+        st.write(
+            "Playwright MCP: `0.0.80`"
+        )
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display previous conversation messages.
+    for message in st.session_state.messages:
+
+        with st.chat_message(
+            message["role"]
+        ):
+
+            st.write(
+                message["content"]
             )
 
-        print("\n")
-        print("=" * 80)
-        print("SUCCESS")
-        print("=" * 80)
+    prompt = st.chat_input(
+        "What should the browser do?"
+    )
 
-        print(
-            f"Output: "
-            f"{OUTPUT_FILE.resolve()}"
+    if not prompt:
+        return
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": prompt,
+        }
+    )
+
+    with st.chat_message(
+        "user"
+    ):
+
+        st.write(
+            prompt
         )
 
-        print(
-            f"Login success: "
-            f"{data.get('success')}"
+    with st.chat_message(
+        "assistant"
+    ):
+
+        status_placeholder = st.empty()
+
+        status_placeholder.write(
+            "Running browser agent..."
         )
 
-        print(
-            f"Elements: "
-            f"{len(data.get('elements', []))}"
-        )
+        try:
 
+            result = asyncio.run(
+                run_browser_agent(
+                    instruction=prompt,
+                    url=url,
+                    username=username,
+                    password=password,
+                )
+            )
 
-# ============================================================
-# ENTRY POINT
-# ============================================================
+            status_placeholder.write(
+                "Browser task completed."
+            )
+
+            agent_response = result.get(
+                "agent_response"
+            )
+
+            if agent_response:
+
+                st.write(
+                    agent_response
+                )
+
+            else:
+
+                st.write(
+                    "Browser workflow completed."
+                )
+
+            st.divider()
+
+            st.subheader(
+                "Generated files"
+            )
+
+            st.write(
+                f"JSON: `{result['json_path']}`"
+            )
+
+            st.write(
+                f"YAML: `{result['snapshot_path']}`"
+            )
+
+            st.write(
+                f"Tool log: `{result['log_path']}`"
+            )
+
+            st.write(
+                f"Final URL: `{result['url']}`"
+            )
+
+            with st.expander(
+                "Playwright browser_snapshot"
+            ):
+
+                st.code(
+                    result["snapshot"],
+                    language="yaml",
+                )
+
+            with st.expander(
+                "Page object JSON"
+            ):
+
+                st.json(
+                    result["dom"]
+                )
+
+            with st.expander(
+                "Playwright tool activity"
+            ):
+
+                render_activity(
+                    result["activity"]
+                )
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        agent_response
+                        or
+                        "Browser workflow completed."
+                    ),
+                }
+            )
+
+        except Exception as exc:
+
+            status_placeholder.write(
+                "Browser task failed."
+            )
+
+            st.error(
+                str(exc)
+            )
+
+            st.exception(
+                exc
+            )
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        f"Browser task failed: {exc}"
+                    ),
+                }
+            )
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

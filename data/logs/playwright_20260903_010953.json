@@ -1,0 +1,235 @@
+[
+  {
+    "tool": "MCP",
+    "status": "connected",
+    "tool_count": 24
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_navigate",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_navigate",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_tabs",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_fill_form",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_wait_for",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_find",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_click",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "success"
+  },
+  {
+    "tool": "browser_evaluate",
+    "status": "success"
+  }
+]

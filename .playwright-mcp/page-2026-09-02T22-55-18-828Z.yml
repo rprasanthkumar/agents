@@ -1,0 +1,49 @@
+- generic [active]:
+  - dialog "cookieconsent" [ref=e1]:
+    - generic [ref=e2]:
+      - text: This website uses fruit cookies to ensure you get the juiciest tracking experience.
+      - button "learn more about cookies" [ref=e3] [cursor=pointer]: But me wait!
+    - button "dismiss cookie message" [ref=e5] [cursor=pointer]: Me want it!
+  - generic [ref=e9]:
+    - generic [ref=e12]:
+      - button "Open Sidenav" [ref=e13] [cursor=pointer]:
+        - img [aria-hidden] [ref=e14]: menu
+      - button "Back to homepage" [ref=e17]:
+        - generic [ref=e19]:
+          - img "OWASP Juice Shop" [ref=e20]
+          - generic [ref=e21]: OWASP Juice Shop
+      - generic "Click to search" [ref=e25]:
+        - button "Open search" [ref=e26] [cursor=pointer]:
+          - img [aria-hidden] [ref=e27]: search
+        - generic:
+          - img [aria-hidden] [ref=e30]: search
+          - textbox [ref=e31]
+          - button "Close search" [ref=e32] [cursor=pointer]:
+            - img [aria-hidden] [ref=e33]: close
+      - generic [ref=e36]:
+        - button "Show/hide account menu" [ref=e37]:
+          - img [aria-hidden] [ref=e38]: account_circle
+          - generic [ref=e39]: Account
+        - button "Show the shopping cart" [ref=e42]:
+          - img [aria-hidden] [ref=e43]: shopping_cart
+          - generic [ref=e44]:
+            - text: Your Basket
+            - generic [ref=e45]: "0"
+        - button "Language selection menu" [ref=e48]:
+          - img [aria-hidden] [ref=e49]: language
+          - generic [ref=e50]: EN
+    - main [ref=e54]:
+      - generic [ref=e55]: All Products
+      - group [ref=e57]:
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [aria-hidden] [ref=e61]: "Items per page:"
+            - generic [ref=e62]: "15"
+          - generic [ref=e63]:
+            - status [ref=e64]: 0 of 0
+            - button "Previous page" [disabled] [ref=e65]
+            - button "Next page" [disabled] [ref=e70]
+  - generic [ref=e81]:
+    - generic [ref=e82]: Language has been changed to English
+    - button [ref=e84]:
+      - generic [ref=e85]: Force page reload
