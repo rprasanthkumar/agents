@@ -1,0 +1,31 @@
+[
+  {
+    "tool": "MCP",
+    "status": "connected",
+    "tool_count": 24
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_navigate",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "completed"
+  },
+  {
+    "tool": "browser_snapshot",
+    "status": "success"
+  },
+  {
+    "tool": "browser_evaluate",
+    "status": "success"
+  }
+]

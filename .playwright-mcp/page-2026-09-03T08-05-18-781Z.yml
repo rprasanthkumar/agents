@@ -1,0 +1,417 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic "announcement" [ref=e3]:
+      - paragraph [ref=e4]:
+        - text: Please support the OWASP mission to improve software security through open source initiatives and community education.
+        - link "Donate Now!" [ref=e5] [cursor=pointer]:
+          - /url: https://owasp.org/donate/
+      - link "close announcement" [ref=e6] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e7]: 
+    - generic "main navigation" [ref=e8]:
+      - navigation "primary navigation" [ref=e9]:
+        - link "go to homepage" [ref=e10] [cursor=pointer]:
+          - /url: https://owasp.org/
+        - list "header menu" [ref=e12]:
+          - listitem [ref=e13]:
+            - link "PROJECTS" [ref=e14] [cursor=pointer]:
+              - /url: https://owasp.org/projects/
+          - listitem [ref=e15]:
+            - link "CHAPTERS" [ref=e16] [cursor=pointer]:
+              - /url: https://owasp.org/chapters/
+          - listitem [ref=e17]:
+            - link "EVENTS" [ref=e18] [cursor=pointer]:
+              - /url: /events/
+          - listitem [ref=e19]:
+            - link "ABOUT" [ref=e20] [cursor=pointer]:
+              - /url: https://owasp.org/about/
+          - listitem [ref=e21]:
+            - link "" [ref=e22] [cursor=pointer]:
+              - /url: "#"
+            - text: 
+        - generic "donate to or join OWASP" [ref=e25]:
+          - link "Store" [ref=e26] [cursor=pointer]:
+            - /url: https://owasp.org/store
+            - generic [aria-hidden] [ref=e27]: 
+            - text: Store
+          - link "Donate" [ref=e28] [cursor=pointer]:
+            - /url: https://owasp.org/donate?reponame=www-project-juice-shop&title=OWASP+Juice+Shop
+          - link "Join" [ref=e29] [cursor=pointer]:
+            - /url: https://owasp.glueup.com/organization/6727/memberships
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - paragraph [ref=e32]: This website uses cookies to analyze our traffic and only share that information with our analytics partners.
+          - generic [ref=e33] [cursor=pointer]: Accept
+        - generic [ref=e34] [cursor=pointer]: x
+    - text: 
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - navigation "navigate page tabs" [ref=e37]:
+        - tablist [ref=e38]:
+          - listitem [ref=e39]:
+            - tab "Main" [selected] [ref=e40] [cursor=pointer]
+          - listitem [ref=e41]:
+            - tab "Overview" [ref=e42] [cursor=pointer]
+          - listitem [ref=e43]:
+            - tab "News" [ref=e44] [cursor=pointer]
+          - listitem [ref=e45]:
+            - tab "Challenges" [ref=e46] [cursor=pointer]
+          - listitem [ref=e47]:
+            - tab "Learning" [ref=e48] [cursor=pointer]
+          - listitem [ref=e49]:
+            - tab "CTF" [ref=e50] [cursor=pointer]
+          - listitem [ref=e51]:
+            - tab "Ecosystem" [ref=e52] [cursor=pointer]
+          - listitem [ref=e53]:
+            - tab "Supporters" [ref=e54] [cursor=pointer]
+      - heading "OWASP Juice Shop" [level=1] [ref=e55]
+      - tabpanel "Main" [ref=e56]:
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - text: For the latest information about OWASP Juice Shop visit
+            - link "https://owasp-juice.shop" [ref=e59] [cursor=pointer]:
+              - /url: https://owasp-juice.shop
+            - text: "!"
+          - paragraph [ref=e60]:
+            - img "Juice Shop Logo" [ref=e61]
+          - paragraph [ref=e62]:
+            - link [ref=e63] [cursor=pointer]:
+              - /url: /projects/#div-flagships
+              - img "OWASP Flagship" [ref=e64]
+            - link [ref=e65] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/releases/latest
+              - img "GitHub release" [ref=e66]
+            - link [ref=e67] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/stargazers
+              - img "GitHub stars" [ref=e68]
+            - link [ref=e69] [cursor=pointer]:
+              - /url: https://twitter.com/owasp_juiceshop
+              - img "Twitter Follow" [ref=e70]
+          - paragraph [ref=e71]:
+            - link [ref=e72] [cursor=pointer]:
+              - /url: https://www.bestpractices.dev/projects/223
+              - img "OpenSSF Best Practices" [ref=e73]
+            - link [ref=e74] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/blob/master/CODE_OF_CONDUCT.md
+              - img "Contributor Covenant" [ref=e75]
+          - paragraph [ref=e76]:
+            - text: OWASP Juice Shop is probably the most modern and sophisticated insecure web application! It can be used in security trainings, awareness demos, CTFs and as a guinea pig for security tools! Juice Shop encompasses vulnerabilities from the entire
+            - link "OWASP Top Ten" [ref=e77] [cursor=pointer]:
+              - /url: /www-project-top-ten
+            - text: along with many other security flaws found in real-world applications!
+          - paragraph [ref=e78]:
+            - img "Slideshow" [ref=e79]
+          - heading "Description" [level=2] [ref=e80]
+          - paragraph [ref=e81]:
+            - text: Juice Shop is written in Node.js, Express and Angular. It was the first application written entirely in JavaScript listed in the
+            - link "OWASP VWA Directory" [ref=e82] [cursor=pointer]:
+              - /url: /www-project-vulnerable-web-applications-directory
+            - text: .
+          - paragraph [ref=e83]: The application contains a vast number of hacking challenges of varying difficulty where the user is supposed to exploit the underlying vulnerabilities. The hacking progress is tracked on a score board. Finding this score board is actually one of the (easy) challenges!
+          - paragraph [ref=e84]: Apart from the hacker and awareness training use case, pentesting proxies or security scanners can use Juice Shop as a “guinea pig”-application to check how well their tools cope with JavaScript-heavy application frontends and REST APIs.
+          - paragraph [ref=e85]:
+            - emphasis [ref=e86]: Translating “dump” or “useless outfit” into German yields “Saftladen” which can be reverse-translated word by word into “juice shop”. Hence the project name. That the initials “JS” match with those of “JavaScript” was purely coincidental!
+          - heading "Testimonials" [level=2] [ref=e87]
+          - blockquote [ref=e88]:
+            - paragraph [ref=e89]:
+              - link "The most trustworthy online shop out there." [ref=e90] [cursor=pointer]:
+                - /url: https://twitter.com/dschadow/status/706781693504589824
+              - text: (
+              - link "@dschadow" [ref=e91] [cursor=pointer]:
+                - /url: https://github.com/dschadow
+              - text: ) —
+              - link "The best juice shop on the whole internet!" [ref=e92] [cursor=pointer]:
+                - /url: https://twitter.com/shehackspurple/status/907335357775085568
+              - text: (
+              - link "@shehackspurple" [ref=e93] [cursor=pointer]:
+                - /url: https://twitter.com/shehackspurple
+              - text: ) —
+              - link "Actually the most bug-free vulnerable application in existence!" [ref=e94] [cursor=pointer]:
+                - /url: https://youtu.be/TXAztSpYpvE?t=26m35s
+              - text: (
+              - link "@vanderaj" [ref=e95] [cursor=pointer]:
+                - /url: https://twitter.com/vanderaj
+              - text: ) —
+              - link "First you 😂😂then you 😢" [ref=e96] [cursor=pointer]:
+                - /url: https://twitter.com/kramse/status/1073168529405472768
+              - text: (
+              - link "@kramse" [ref=e97] [cursor=pointer]:
+                - /url: https://twitter.com/kramse
+              - text: ) —
+              - link "But this doesn’t have anything to do with juice." [ref=e98] [cursor=pointer]:
+                - /url: https://twitter.com/coderPatros/status/1199268774626488320
+              - text: (
+              - link "@coderPatros’ wife" [ref=e99] [cursor=pointer]:
+                - /url: https://twitter.com/coderPatros
+              - text: )
+          - heading "Contributors" [level=2] [ref=e100]
+          - paragraph [ref=e101]:
+            - link [ref=e102] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/graphs/contributors
+              - img "GitHub contributors" [ref=e103]
+            - link [ref=e104] [cursor=pointer]:
+              - /url: https://crowdin.com/project/owasp-juice-shop
+              - img "Crowdin" [ref=e105]
+          - paragraph [ref=e106]:
+            - text: The OWASP Juice Shop has been created by
+            - link "Björn Kimminich" [ref=e107] [cursor=pointer]:
+              - /url: mailto:bjoern.kimminich@owasp.org
+            - text: and is developed, maintained and translated by a
+            - link "team of volunteers" [ref=e108] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/blob/master/HALL_OF_FAME.md
+            - text: . A
+            - link "live update of the project contributors" [ref=e109] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/graphs/contributors
+            - text: is found here.
+          - heading "Licensing" [level=2] [ref=e110]
+          - paragraph [ref=e111]:
+            - link [ref=e112] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/blob/master/LICENSE
+              - img "license" [ref=e113]
+          - paragraph [ref=e114]:
+            - text: "This program is free software: You can redistribute it and/or modify it under the terms of the"
+            - link "MIT License" [ref=e115] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/blob/master/LICENSE
+            - text: . OWASP Juice Shop and any contributions are Copyright © by Bjoern Kimminich & the OWASP Juice Shop contributors 2014-2025.
+      - separator [ref=e116]
+      - link "Edit on GitHub" [ref=e118] [cursor=pointer]:
+        - /url: https://github.com/OWASP/www-project-juice-shop/blob/master/index.md
+      - complementary [ref=e126]:
+        - generic [ref=e127]:
+          - strong [ref=e128]:
+            - text: The OWASP
+            - superscript [ref=e129]: ®
+            - text: Foundation
+          - text: works to improve the security of software through its community-led open source software projects, hundreds of chapters worldwide, tens of thousands of members, and by hosting local and global conferences.
+        - heading "Project Information" [level=3] [ref=e130]
+        - list [ref=e131]:
+          - listitem [ref=e132]:
+            - generic [ref=e133]: 
+            - text: Flagship Project
+        - heading "Classification" [level=4] [ref=e134]
+        - list [ref=e135]:
+          - listitem [ref=e136]:
+            - generic [ref=e137]: 
+            - text: Tool
+        - heading "Audience" [level=4] [ref=e138]
+        - list [ref=e139]:
+          - listitem [ref=e140]:
+            - generic [ref=e141]: 
+            - text: Builder
+          - listitem [ref=e142]:
+            - generic [ref=e143]: 
+            - text: Breaker
+          - listitem [ref=e144]:
+            - generic [ref=e145]: 
+            - text: Defender
+        - heading "Installation" [level=3] [ref=e146]
+        - list [ref=e147]:
+          - listitem [ref=e148]:
+            - link "From Source" [ref=e149] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop#from-sources
+          - listitem [ref=e150]:
+            - text: Packaged (
+            - link "GitHub" [ref=e151] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop/releases/
+            - text: /
+            - link "SourceForge" [ref=e152] [cursor=pointer]:
+              - /url: https://sourceforge.net/projects/juice-shop/files/
+            - text: )
+          - listitem [ref=e153]:
+            - link "Docker Image" [ref=e154] [cursor=pointer]:
+              - /url: https://hub.docker.com/r/bkimminich/juice-shop
+        - heading "Sources" [level=3] [ref=e155]
+        - list [ref=e156]:
+          - listitem [ref=e157]:
+            - link "GitHub" [ref=e158] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop
+          - listitem [ref=e159]:
+            - link "CTF Extension (GitHub)" [ref=e160] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/juice-shop-ctf
+          - listitem [ref=e161]:
+            - link "MultiJuicer (GitHub)" [ref=e162] [cursor=pointer]:
+              - /url: https://github.com/juice-shop/multi-juicer
+          - listitem [ref=e163]:
+            - link "Crowdin I18N" [ref=e164] [cursor=pointer]:
+              - /url: https://crowdin.com/project/owasp-juice-shop
+        - heading "Documentation" [level=3] [ref=e165]
+        - list [ref=e166]:
+          - listitem [ref=e167]:
+            - link "Online Demo" [ref=e168] [cursor=pointer]:
+              - /url: https://juice-shop.herokuapp.com/
+          - listitem [ref=e169]:
+            - link "Introduction Slides" [ref=e170] [cursor=pointer]:
+              - /url: https://juice-shop.github.io/juice-shop
+          - listitem [ref=e171]:
+            - text: Companion Guide (
+            - link "LeanPub" [ref=e172] [cursor=pointer]:
+              - /url: https://leanpub.com/juice-shop
+            - text: /
+            - link "Online" [ref=e173] [cursor=pointer]:
+              - /url: https://pwning.owasp-juice.shop
+            - text: )
+        - heading "Community" [level=3] [ref=e174]
+        - list [ref=e175]:
+          - listitem [ref=e176]:
+            - link "Slack Channel" [ref=e177] [cursor=pointer]:
+              - /url: https://owasp.slack.com/messages/project-juiceshop
+            - text: (
+            - link "Self-registration" [ref=e178] [cursor=pointer]:
+              - /url: https://owasp.org/slack/invite
+            - text: )
+          - listitem [ref=e179]:
+            - link "Matrix" [ref=e180] [cursor=pointer]:
+              - /url: https://matrix.to/#/#bkimminich_juice-shop:gitter.im
+          - listitem [ref=e181]:
+            - link "Subreddit" [ref=e182] [cursor=pointer]:
+              - /url: https://www.reddit.com/r/owasp_juiceshop
+          - listitem [ref=e183]:
+            - link "Google Group" [ref=e184] [cursor=pointer]:
+              - /url: https://groups.google.com/a/owasp.org/g/juice-shop-project
+        - heading "Statistics" [level=3] [ref=e185]
+        - list [ref=e186]:
+          - listitem [ref=e187]:
+            - link "Daily Project Stats" [ref=e188] [cursor=pointer]:
+              - /url: https://stats.owasp-juice.shop
+        - heading "Social Media" [level=3] [ref=e189]
+        - list [ref=e190]:
+          - listitem [ref=e191]:
+            - link "BlueSky" [ref=e192] [cursor=pointer]:
+              - /url: https://bsky.app/profile/owasp-juice.shop
+          - listitem [ref=e193]:
+            - link "Mastodon" [ref=e194] [cursor=pointer]:
+              - /url: https://fosstodon.org/@owasp_juiceshop
+          - listitem [ref=e195]:
+            - link "Twitter/X" [ref=e196] [cursor=pointer]:
+              - /url: https://x.com/owasp_juiceshop
+          - listitem [ref=e197]:
+            - link "Facebook" [ref=e198] [cursor=pointer]:
+              - /url: https://www.facebook.com/owasp.juiceshop
+          - listitem [ref=e199]:
+            - link "YouTube" [ref=e200] [cursor=pointer]:
+              - /url: https://www.youtube.com/channel/UCjkQ1Y-bxYAqwwD1SyQpBvw/playlists
+        - heading "Merchandise" [level=3] [ref=e201]
+        - list [ref=e202]:
+          - listitem [ref=e203]:
+            - link "OpenSea" [ref=e204] [cursor=pointer]:
+              - /url: https://opensea.io/collection/juice-shop
+          - listitem [ref=e205]:
+            - link "StickerYou" [ref=e206] [cursor=pointer]:
+              - /url: https://www.stickeryou.com/products/owasp-juice-shop/794
+          - listitem [ref=e207]:
+            - text: SpreadShirt (
+            - link "US" [ref=e208] [cursor=pointer]:
+              - /url: https://shop.spreadshirt.com/juiceshop
+            - text: /
+            - link "DE" [ref=e209] [cursor=pointer]:
+              - /url: https://shop.spreadshirt.de/juiceshop
+            - text: )
+        - heading "Leaders" [level=3] [ref=e210]
+        - list [ref=e211]:
+          - listitem [ref=e212]:
+            - link "Bjoern Kimminich" [ref=e213] [cursor=pointer]:
+              - /url: mailto:bjoern.kimminich@owasp.org
+          - listitem [ref=e214]:
+            - link "Jannik Hollenbach" [ref=e215] [cursor=pointer]:
+              - /url: mailto:jannik.hollenbach@owasp.org
+        - paragraph [ref=e216]:
+          - img "Bjoern's GitHub stats" [ref=e217]
+          - img "Jannik's GitHub stats" [ref=e218]
+        - generic [ref=e219]:
+          - heading "Upcoming OWASP Global Events" [level=3] [ref=e220]
+          - list [ref=e222]:
+            - listitem [ref=e223]:
+              - link "OWASP Global AppSec EU 2026 - Vienna, Austria" [ref=e224] [cursor=pointer]:
+                - /url: https://owasp.glueup.com/event/owasp-global-appsec-eu-2026-vienna-austria-162243/
+              - list [ref=e225]:
+                - listitem [ref=e226]: June 22-26, 2026
+            - listitem [ref=e227]:
+              - link "OWASP Global AppSec USA 2026 - San Francisco, CA" [ref=e228] [cursor=pointer]:
+                - /url: https://owasp.glueup.com/event/owasp-2026-global-appsec-usa-san-francisco-ca-167174/
+              - list [ref=e229]:
+                - listitem [ref=e230]: November 2-6, 2026
+            - listitem [ref=e231]:
+              - link "OWASP Global AppSec EU 2027 - Vienna, Austria" [ref=e232] [cursor=pointer]:
+                - /url: https://owasp.org/events/
+              - list [ref=e233]:
+                - listitem [ref=e234]: June 21-25, 2027
+            - listitem [ref=e235]:
+              - link "OWASP Global AppSec USA 2027 - Atlanta, GA" [ref=e236] [cursor=pointer]:
+                - /url: https://owasp.org/events/
+              - list [ref=e237]:
+                - listitem [ref=e238]: September 20-24, 2027
+            - listitem [ref=e239]:
+              - link "OWASP Global AppSec EU 2028 - Vienna, Austria" [ref=e240] [cursor=pointer]:
+                - /url: https://owasp.org/events/
+              - list [ref=e241]:
+                - listitem [ref=e242]: June 19-23, 2028
+  - contentinfo [ref=e243]:
+    - generic [ref=e246]:
+      - heading "Corporate Supporters" [level=2] [ref=e247]
+      - generic [ref=e248]:
+        - link [ref=e249] [cursor=pointer]:
+          - /url: https://www.salesforce.com/
+          - img "image" [ref=e250]
+        - link [ref=e251] [cursor=pointer]:
+          - /url: https://www.bloomberg.com/company/values/tech-at-bloomberg/
+          - img "image" [ref=e252]
+        - link [ref=e253] [cursor=pointer]:
+          - /url: https://www.tirreno.com
+          - img "image" [ref=e254]
+        - link [ref=e255] [cursor=pointer]:
+          - /url: https://vijil.ai
+          - img "image" [ref=e256]
+        - link [ref=e257] [cursor=pointer]:
+          - /url: https://osec.com
+          - img "image" [ref=e258]
+        - link [ref=e259] [cursor=pointer]:
+          - /url: https://automattic.com/
+          - img "image" [ref=e260]
+        - link [ref=e261] [cursor=pointer]:
+          - /url: https://www.securecodewarrior.com/
+          - img "image" [ref=e262]
+        - link [ref=e263] [cursor=pointer]:
+          - /url: https://trent.ai
+          - img "image" [ref=e264]
+        - link [ref=e265] [cursor=pointer]:
+          - /url: https://www.blackduck.com/
+          - img "image" [ref=e266]
+      - link "Become a corporate supporter" [ref=e268] [cursor=pointer]:
+        - /url: /supporters
+    - generic [ref=e269]:
+      - generic [ref=e270]:
+        - link "github organization" [ref=e271] [cursor=pointer]:
+          - /url: https://github.com/OWASP/
+          - generic [ref=e272]: 
+        - link "slack group" [ref=e273] [cursor=pointer]:
+          - /url: https://owasp.org/slack/invite
+          - generic [ref=e274]: 
+        - link "facebook group" [ref=e275] [cursor=pointer]:
+          - /url: https://www.facebook.com/OWASPFoundation
+          - generic [ref=e276]: 
+        - link "mastodon account" [ref=e277] [cursor=pointer]:
+          - /url: https://infosec.exchange/@owasp
+        - link "twitter account" [ref=e280] [cursor=pointer]:
+          - /url: https://twitter.com/owasp
+        - link "linkedin account" [ref=e283] [cursor=pointer]:
+          - /url: https://www.linkedin.com/company/owasp/
+          - generic [ref=e284]: 
+        - link "youtube account" [ref=e285] [cursor=pointer]:
+          - /url: https://www.youtube.com/user/OWASPGLOBAL
+          - generic [ref=e286]: 
+      - navigation "secondary navigation" [ref=e287]:
+        - list [ref=e288]:
+          - listitem [ref=e289]:
+            - link "PRIVACY" [ref=e290] [cursor=pointer]:
+              - /url: https://owasp.org/www-policy/operational/privacy
+          - listitem [ref=e291]:
+            - link "SITEMAP" [ref=e292] [cursor=pointer]:
+              - /url: https://owasp.org/sitemap/
+          - listitem [ref=e293]:
+            - link "CONTACT" [ref=e294] [cursor=pointer]:
+              - /url: https://owasp.org/contact/
+      - paragraph [ref=e295]:
+        - text: OWASP, the OWASP logo, and Global AppSec are registered trademarks and AppSec Days, AppSec California, AppSec Cali, SnowFROC, OWASP Boston Application Security Conference, and LASCON are trademarks of the OWASP Foundation, Inc. Unless otherwise specified, all content on the site is Creative Commons Attribution-ShareAlike v4.0 and provided without warranty of service or accuracy. For more information, please refer to our
+        - link "General Disclaimer" [ref=e296] [cursor=pointer]:
+          - /url: https://policy.owasp.org/operational/general-disclaimer.html
+        - text: . OWASP does not endorse or recommend commercial products or services, allowing our community to remain vendor neutral with the collective wisdom of the best minds in software security worldwide. Copyright 2026, OWASP Foundation, Inc.
